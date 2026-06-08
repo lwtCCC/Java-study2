@@ -1,7 +1,6 @@
 package project;
 
 import java.awt.*;
-import java.awt.color.ColorSpace;
 import java.io.Serializable;
 
 public class MyColor extends Color implements Serializable {
@@ -55,36 +54,6 @@ public class MyColor extends Color implements Serializable {
 
         // 默认返回 RGB 字符串
         return String.format("rgb(%d,%d,%d)", r, g, b);
-    }
-
-    // 根据颜色名称获取 MyColor 对象
-    public static MyColor getColorByName(String name) {
-        switch (name.toLowerCase()) {
-            case "red": return new MyColor(255, 0, 0);
-            case "green": return new MyColor(0, 255, 0);
-            case "blue": return new MyColor(0, 0, 255);
-            case "yellow": return new MyColor(255, 255, 0);
-            case "black": return new MyColor(0, 0, 0);
-            case "white": return new MyColor(255, 255, 255);
-            case "gray": return new MyColor(128, 128, 128);
-            case "orange": return new MyColor(255, 200, 0);
-            case "pink": return new MyColor(255, 175, 175);
-            case "cyan": return new MyColor(0, 255, 255);
-            case "magenta": return new MyColor(255, 0, 255);
-            case "purple": return new MyColor(128, 0, 128);
-            case "brown": return new MyColor(165, 42, 42);
-            default: return new MyColor(0, 0, 0);
-        }
-    }
-
-    // 检查是否为常见颜色
-    public boolean isCommonColor() {
-        return !toString().startsWith("rgb");
-    }
-
-    // 获取颜色的 RGB 十六进制字符串
-    public String toHexString() {
-        return String.format("#%02x%02x%02x", getRed(), getGreen(), getBlue());
     }
 
 }

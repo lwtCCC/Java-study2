@@ -1,15 +1,26 @@
 package project;
 
+import swingDemo.DefaultListModelTest;
+
 import javax.swing.*;
 import javax.swing.border.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
+import java.io.*;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 public class SearchNumJFrame{
+
+    int tempLength, max, tempTime, rows = 4, cols = 5;
+    boolean stopFlag = false;
+    Thread currentThread;
+
+    int[] startArr = {20,100,500};
 
     JFrame jFrame = new JFrame("随机数序列查找重复值，动态演示");
 
@@ -23,26 +34,24 @@ public class SearchNumJFrame{
     JButton searchBtn = new JButton("查找重复值");
     JButton addColorBtn = new JButton("添加颜色");
 
-    //颜色盘
-    JColorChooser jColorChooser = new JColorChooser();
-
     //下半组件
     JScrollPane jScrollPane = new JScrollPane();
     JPanel numberPanel = new JPanel(new GridLayout(4,5));
 
-    JSplitPane jSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,jScrollPane,numberPanel);
-
-    //颜色列表框
-    String[] colors = {"red","green","blue"};
-    DefaultListModel<String> model = new DefaultListModel<>();
-    JList<String> jList = new JList<>(model);
+    Random random = new Random();
 
     //默认随机数数组
-    int[] arr = {67, 23, 12, 45, 12, 78, 34, 91, 56, 3, 47, 82, 19, 64, 38, 72, 95, 15, 51, 88};
+    int[] arr = new int[20];
+
     //存放对应的容器
     JLabel[] jLabels = new JLabel[arr.length];
 
-    Random random = new Random();
+    //创建分割条
+    JSplitPane jSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,jScrollPane,numberPanel);
+
+    //颜色列表框
+    DefaultListModel<Color> model = new DefaultListModel<>();
+    JList<Color> jList = new JList<>(model);
 
     //右键弹出选项
     JPopupMenu jPopupMenu = new JPopupMenu();
@@ -50,20 +59,116 @@ public class SearchNumJFrame{
     JMenuItem open = new JMenuItem("打开");
     JMenuItem save = new JMenuItem("保存");
 
+    //过滤器
+    FileNameExtensionFilter f = new FileNameExtensionFilter("文本文件（*.txt）","txt");
+
     //文件选择对话框
-    JFileChooser jFileChooser = new JFileChooser();
+    JFileChooser jFileChooser = new JFileChooser("./src/main/java/project/color.txt");
+
+    private void createArr() {
+        stopFlag = false;
+        currentThread = null;
+
+        tempTime = test(sleepTime, 2);
+        cols = Math.max(tempLength / 4, 5);
+        numberPanel.removeAll();
+        numberPanel.setLayout(new GridLayout(4, cols));
+
+        currentThread = new Thread(new MyThread(tempTime, tempLength));
+        currentThread.start();
+    }
+
+    //创建长度为x的全0数组，并填充jLabels数组
+    private void initCreateArr(int x) {
+        for (int i = 0; i < x; i++) {
+            JLabel jLabel = new JLabel( "0");
+            jLabel.setBorder(new BevelBorder(1));
+            jLabel.setVerticalAlignment(JLabel.CENTER);
+            jLabel.setHorizontalAlignment(JLabel.CENTER);
+            jLabel.setFont(new Font("微软雅黑", Font.BOLD, 16));
+            numberPanel.add(jLabel);
+            jLabels[i] = jLabel;
+        }
+    }
+
+    private void stopThread() {
+        if (currentThread != null && currentThread.isAlive()) {
+            stopFlag = true;
+            currentThread.interrupt();
+
+            try {
+                currentThread.join(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+    }
+
+    //动态演示
+    private class MyThread implements Runnable{
+        int time;
+        int arrLength;
+
+        public MyThread(int tempTime,int tempLength){
+            this.time = tempTime;
+            this.arrLength = tempLength;
+        }
+
+        @Override
+        public void run() {
+            initCreateArr(arrLength);
+
+            for(int i=0;i<arrLength;i++){
+                if(stopFlag){
+                    return;
+                }
+
+                try {
+                    Thread.sleep(time);
+                } catch (InterruptedException e) {
+                    return;
+                }
+
+                jLabels[i].setText(arr[i] + "");
+                numberPanel.revalidate();
+                numberPanel.repaint();
+            }
+        }
+    }
+
+    //数据检测
+    private int test(JTextField jTextField,int x){
+        int temp = 0;
+        if(jTextField.getText().isEmpty()){
+            temp = startArr[x];
+        } else if ("0".equals(jTextField.getText()) && x != 2) {
+            JOptionPane.showMessageDialog(jFrame,"违规数据","错误发生",JOptionPane.ERROR_MESSAGE);
+            jTextField.setText("");
+        } else{
+            try {
+                temp = Integer.parseInt(jTextField.getText());//获取长度
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(jFrame,"请输入合法数据","错误发生",JOptionPane.ERROR_MESSAGE);
+                jTextField.setText("");
+            }
+        }
+        return temp;
+    }
 
     //新建渲染器
-    private class ColorCellRenderer extends JPanel implements ListCellRenderer<String> {
+    private class ColorCellRenderer extends JPanel implements ListCellRenderer<Color> {
         private String color;
         private ImageIcon icon;
+        private MyColor myColor;
 
         private Color background;
         private Color foreground;
 
         @Override
-        public Component getListCellRendererComponent(JList<? extends String> list, String value, int index, boolean isSelected, boolean cellHasFocus) {
-            this.color = value.toString();
+        public Component getListCellRendererComponent(JList<? extends Color> list, Color value, int index, boolean isSelected, boolean cellHasFocus) {
+            myColor = (MyColor) value;
+            this.color = myColor.toString();
             this.icon = isSelected?new ImageIcon("./src/main/java/project/img/select2.png")
                     :new ImageIcon("./src/main/java/project/img/select.png");
 
@@ -83,91 +188,15 @@ public class SearchNumJFrame{
             g.setColor(background);
             g.fillRect(0, 0, getWidth(), getHeight());
             g.setFont(new Font("StSong", Font.BOLD, 18));
-            g.setColor(foreground);
             g.drawImage(icon.getImage(), 10, 10, null);
-
+            g.setColor(myColor);
             g.drawString(this.color,10+icon.getIconWidth()+5,height/2+3);
         }
     }
 
     private void init(){
 
-        createBtn.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                for (int i = 0; i < arr.length; i++) {
-                    int temp = random.nextInt(100);
-                    arr[i] = temp;
-                }
-                createArr();
-            }
-        });
-
-        //左侧的数字展示
-        createArr();
-
-        //颜色查找
-        searchBtn.addActionListener(e -> {
-            Map<Integer, String> map = new HashMap<>();
-            for (int i = 0; i < arr.length; i++) {
-                if (map.containsKey(arr[i])) {
-                    String s = map.get(arr[i]);
-                    if("red".equals(s)){
-                        jLabels[i].setForeground(Color.RED);
-                    }
-                }else{
-                    map.put(arr[i],"red");
-                }
-            }
-        });
-
-        //模型初始化
-        model.addElement("red");
-        model.addElement("green");
-        model.addElement("blue");
-
-        //添加颜色
-        addColorBtn.addActionListener(e -> {
-            Color color = JColorChooser.showDialog(jFrame, "颜色选择", null);
-            model.addElement(color.toString());
-        });
-
-        //打开功能
-        open.addActionListener(e -> {
-            jFileChooser.showOpenDialog(jFrame);
-            File selectedFile = jFileChooser.getSelectedFile();
-            System.out.println(selectedFile.toString());
-        });
-
-        //保存功能
-        save.addActionListener(e -> {
-            jFileChooser.showSaveDialog(jFrame);
-            File selectedFile = jFileChooser.getSelectedFile();
-            System.out.println(selectedFile.toString());
-        });
-
-        //菜单栏
-        jPopupMenu.add(deleted);
-        jPopupMenu.add(open);
-        jPopupMenu.add(save);
-
-        //菜单项关联
-        jList.setComponentPopupMenu(jPopupMenu);
-        jList.setVisibleRowCount(3);
-
-
-        //自定义列表框
-        jList.setCellRenderer( new ColorCellRenderer());
-        jList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-
-        //分割条的初始设置
-        jSplitPane.setOneTouchExpandable(true);
-        jSplitPane.setContinuousLayout(true);
-
-        //文本设置
-        lengthText.setHorizontalAlignment(JTextField.CENTER);
-        rangeText.setHorizontalAlignment(JTextField.CENTER);
-        sleepTime.setHorizontalAlignment(JTextField.CENTER);
+        jFileChooser.setFileFilter(f);
 
         //上半设置
         Box topBox = Box.createHorizontalBox();
@@ -191,6 +220,136 @@ public class SearchNumJFrame{
         topBox.add(addColorBtn);
         topBox.add(Box.createHorizontalStrut(3));
 
+        //文本设置
+        lengthText.setHorizontalAlignment(JTextField.CENTER);
+        rangeText.setHorizontalAlignment(JTextField.CENTER);
+        sleepTime.setHorizontalAlignment(JTextField.CENTER);
+
+        //左侧的数字展示
+        initCreateArr(arr.length);
+
+        //生成
+        createBtn.addActionListener(e -> {
+
+            stopThread();
+
+            tempLength = test(lengthText,0);
+            max = test(rangeText,1);
+
+            arr = new int[tempLength];//生成全0数组
+            jLabels = new JLabel[arr.length];
+            for (int i = 0; i < arr.length; i++) {
+                int temp = 0;
+                try {
+                    temp = random.nextInt(max);
+                } catch (Exception ex) {
+                    //throw new RuntimeException(ex);
+                }
+                arr[i] = temp;
+            }
+            createArr();
+        });
+
+        //颜色查找
+        searchBtn.addActionListener(e -> {
+            if(currentThread != null && currentThread.isAlive()){
+                JOptionPane.showMessageDialog(jFrame,"数据正在生成中，请稍等");
+                return;
+            }
+
+            MyColor[] colorArray = new MyColor[model.size()];
+            for (int i = 0; i < model.size(); i++) {
+                colorArray[i] = (MyColor) model.get(i);
+            }
+
+            Map<Integer, MyColor> map = new HashMap<>();
+            for (int i = 0; i < arr.length; i++) {
+                if (map.containsKey(arr[i])) {
+                    MyColor s = map.get(arr[i]);
+                    jLabels[i].setForeground(s);
+                }else{
+                    int temp = i%colorArray.length;
+                    map.put(arr[i],colorArray[temp]);
+                    jLabels[i].setForeground(colorArray[temp]);
+                }
+            }
+        });
+
+        //添加颜色
+        addColorBtn.addActionListener(e -> {
+            Color color = JColorChooser.showDialog(jFrame, "颜色选择", null);
+            if (color != null) {
+                MyColor myColor = new MyColor(color);
+                model.addElement(myColor);
+            }
+        });
+
+        //自定义列表框
+        jList.setCellRenderer( new ColorCellRenderer());
+        jList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        //模型初始化
+        model.addElement(new MyColor(Color.RED));
+        model.addElement(new MyColor(Color.ORANGE));
+        model.addElement(new MyColor(Color.YELLOW));
+        model.addElement(new MyColor(Color.GREEN));
+        model.addElement(new MyColor(Color.BLUE));
+        model.addElement(new MyColor(Color.CYAN));
+        model.addElement(new MyColor(Color.MAGENTA));
+
+        //删除
+        deleted.addActionListener(e -> {
+            List<Color> selectList = jList.getSelectedValuesList();
+
+            for (Color color : selectList) {
+                model.removeElement(color);
+            }
+        });
+
+        //打开功能
+        open.addActionListener(e -> {
+            jFileChooser.showOpenDialog(jFrame);
+
+            try {
+                File selectedFile = jFileChooser.getSelectedFile();
+                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(selectedFile));
+                model = (DefaultListModel)ois.readObject();
+                ois.close();
+            } catch (IOException | ClassNotFoundException | NullPointerException ex) {
+                //throw new RuntimeException(ex);
+            }
+            jList.removeAll();
+            jList.setModel(model);
+            jList.repaint();
+        });
+
+        //保存功能
+        save.addActionListener(e -> {
+            jFileChooser.showSaveDialog(jFrame);
+
+            try {
+                File selectedFile = jFileChooser.getSelectedFile();
+                ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(selectedFile));
+                oos.writeObject(model);
+                oos.close();
+            } catch (IOException | NullPointerException ex) {
+                //throw new RuntimeException(ex);
+            }
+        });
+
+        //菜单栏
+        jPopupMenu.add(deleted);
+        jPopupMenu.add(open);
+        jPopupMenu.add(save);
+
+        //菜单项关联
+        jList.setComponentPopupMenu(jPopupMenu);
+        jList.setVisibleRowCount(3);
+
+        //分割条的初始设置
+        jSplitPane.setOneTouchExpandable(true);
+        jSplitPane.setContinuousLayout(true);
+
         //下半左侧设置
         TitledBorder titleBorder = BorderFactory.createTitledBorder(new EtchedBorder(Color.black, Color.cyan),
                 "颜色", TitledBorder.LEFT, TitledBorder.CENTER);
@@ -207,22 +366,6 @@ public class SearchNumJFrame{
         jFrame.pack();
         jFrame.setLocationRelativeTo(null);
         jFrame.setVisible(true);
-    }
-
-    private void createArr() {
-        numberPanel.removeAll();
-        numberPanel.setLayout(new GridLayout(4, 5));
-        for(int i=0;i<arr.length;i++){
-            JLabel jLabel = new JLabel(arr[i] + "");
-            jLabel.setBorder(new BevelBorder(1));
-            jLabel.setVerticalAlignment(JLabel.CENTER);
-            jLabel.setHorizontalAlignment(JLabel.CENTER);
-            jLabel.setFont(new Font("微软雅黑", Font.BOLD, 16));
-            numberPanel.add(jLabel);
-            jLabels[i] = jLabel;
-        }
-        numberPanel.revalidate();
-        numberPanel.repaint();
     }
 
     public static void main(String[] args) {
