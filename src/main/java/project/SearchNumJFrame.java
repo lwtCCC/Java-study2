@@ -8,11 +8,8 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.util.Enumeration;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
 
 public class SearchNumJFrame{
 
@@ -53,11 +50,16 @@ public class SearchNumJFrame{
     DefaultListModel<Color> model = new DefaultListModel<>();
     JList<Color> jList = new JList<>(model);
 
-    //右键弹出选项
+    //右键弹出选项(左侧)
     JPopupMenu jPopupMenu = new JPopupMenu();
     JMenuItem deleted = new JMenuItem("删除选中多项");
     JMenuItem open = new JMenuItem("打开");
     JMenuItem save = new JMenuItem("保存");
+
+    //右键弹出选项(右侧)
+    JPopupMenu jPopupMenu1 = new JPopupMenu();
+    JMenuItem load = new  JMenuItem("读取文件");
+    ArrayList<String> list = new ArrayList<>();
 
     //过滤器
     FileNameExtensionFilter f = new FileNameExtensionFilter("文本文件（*.txt）","txt");
@@ -76,6 +78,31 @@ public class SearchNumJFrame{
 
         currentThread = new Thread(new MyThread(tempTime, tempLength));
         currentThread.start();
+    }
+
+    private void createArr(int x,int y) {
+        stopFlag = false;
+        currentThread = null;
+
+        tempTime = test(sleepTime, 2);
+        rows = x;
+        cols = y;
+        numberPanel.removeAll();
+        numberPanel.setLayout(new GridLayout(rows, cols));
+
+        currentThread = new Thread(new MyThread(tempTime, x*y));
+        currentThread.start();
+    }
+
+    private void loadArr(int x,int y) {
+        stopThread();
+
+        arr = new int[x*y];//生成全0数组
+        jLabels = new JLabel[arr.length];
+        for (int i = 0; i < list.size(); i++) {
+            arr[i] = Integer.parseInt(list.get(i));
+        }
+        createArr(x,y);
     }
 
     //创建长度为x的全0数组，并填充jLabels数组
@@ -230,7 +257,6 @@ public class SearchNumJFrame{
 
         //生成
         createBtn.addActionListener(e -> {
-
             stopThread();
 
             tempLength = test(lengthText,0);
@@ -309,7 +335,6 @@ public class SearchNumJFrame{
         //打开功能
         open.addActionListener(e -> {
             jFileChooser.showOpenDialog(jFrame);
-
             try {
                 File selectedFile = jFileChooser.getSelectedFile();
                 ObjectInputStream ois = new ObjectInputStream(new FileInputStream(selectedFile));
@@ -337,14 +362,50 @@ public class SearchNumJFrame{
             }
         });
 
+        load.addActionListener(e -> {
+            JFileChooser jFileChooser = new JFileChooser("./src/main/java/project/number.txt");
+            jFileChooser.showOpenDialog(jFrame);
+
+            try {
+                File selectedFile = jFileChooser.getSelectedFile();
+                FileInputStream fis = new FileInputStream(selectedFile);
+                int r;
+                StringBuilder s = new StringBuilder();
+                while ((r = fis.read()) != -1) {
+                    char c = (char) r;
+                    if(c == ' ') continue;
+                    if(c != ',') s.append(c);
+                    if(c == ',') {
+                        list.add(s.toString());
+                        s.delete(0, s.length());
+                    }
+                }
+                fis.close();
+            }catch (Exception _){
+            }
+            int size = list.size();
+            int sqrt = (int)Math.sqrt(size);
+            if(sqrt * sqrt == size) loadArr(sqrt,sqrt);
+            else {
+                System.out.println(sqrt);
+                loadArr(sqrt,sqrt+1);
+            }
+
+        });
+
         //菜单栏
         jPopupMenu.add(deleted);
         jPopupMenu.add(open);
         jPopupMenu.add(save);
 
+        jPopupMenu1.add(load);
+
         //菜单项关联
         jList.setComponentPopupMenu(jPopupMenu);
+
         jList.setVisibleRowCount(3);
+
+        numberPanel.setComponentPopupMenu(jPopupMenu1);
 
         //分割条的初始设置
         jSplitPane.setOneTouchExpandable(true);
@@ -371,4 +432,5 @@ public class SearchNumJFrame{
     public static void main(String[] args) {
         new  SearchNumJFrame().init();
     }
+
 }
